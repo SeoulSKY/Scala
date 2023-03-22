@@ -23,9 +23,11 @@ object problem1 extends App {
 
   val unsorted = List(1, 5, 2, 4, 3)
   client.ask(SorterClient.Request(unsorted))(3 seconds).onComplete {
-    case Success(sorted) => assert(unsorted.sorted == sorted); system.terminate()
-    case Failure(exception) => exception.printStackTrace(); system.terminate()
+    case Success(sorted) => assert(unsorted.sorted == sorted)
+    case Failure(exception) => exception.printStackTrace()
   }
+
+  system.terminate()
 }
 
 /**
