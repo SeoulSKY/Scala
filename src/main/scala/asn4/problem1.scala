@@ -47,7 +47,7 @@ object SorterClient {
 class SorterClient extends Actor {
   import SorterClient.*
 
-  var requestTable: Map[String, (ActorRef, List[Int], List[Int])] = Map()
+  var requestTable: Map[String, (ActorRef, ActorRef, List[Int], List[Int])] = Map()
 
   def receive: Receive = {
     case Request(unsorted) if unsorted == Nil =>
@@ -55,7 +55,7 @@ class SorterClient extends Actor {
     case Request(unsorted) =>
       val key = Instant.now().toString
       val sorter = context.actorOf(Props[Sorter](), key)
-      requestTable += key -> (sender(), unsorted, Nil)
+      requestTable += key -> (sender(), sorter, unsorted, Nil)
 
       unsorted.appended(END).foreach(sorter ! Sorter.Sort(_))
     case Sorter.Result(n: Int) =>
@@ -63,11 +63,12 @@ class SorterClient extends Actor {
         .find(s => Try(Instant.parse(s)).isSuccess)
         .map(Instant.parse)
         .get.toString
-
+      
       var t = requestTable(key)
-      t = (t._1, t._2, t._3.appended(n))
-      if (t._3.length == t._2.length) {
-        t._1 ! t._3
+      t = (t._1, t._2, t._3, t._4.appended(n))
+      if (t._4.length == t._3.length) {
+        t._1 ! t._4
+        context.stop(t._2)
         requestTable -= key
       } else {
         requestTable += key -> t
