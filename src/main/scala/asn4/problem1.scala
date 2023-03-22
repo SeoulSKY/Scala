@@ -4,11 +4,12 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 
+import java.time.Instant
 import scala.annotation.unused
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 /**
  * A sentinel to stop sorting
@@ -16,13 +17,12 @@ import scala.util.{Failure, Success}
 val END: Int = 0
 
 object problem1 extends App {
+  // usage example
   val system = ActorSystem("main")
   val client = system.actorOf(Props[SorterClient]())
 
   val unsorted = List(1, 5, 2, 4, 3)
-  val future = client.ask(SorterClient.Request(unsorted))(3 seconds)
-
-  future.onComplete {
+  client.ask(SorterClient.Request(unsorted))(3 seconds).onComplete {
     case Success(sorted) => assert(unsorted.sorted == sorted); system.terminate()
     case Failure(exception) => exception.printStackTrace(); system.terminate()
   }
@@ -32,42 +32,59 @@ object problem1 extends App {
  * Client actor for sending messages to the filter actors
  */
 object SorterClient {
+  /**
+   * A wrapper to send requests to this actor
+   * @param unsorted The list of integers to be sorted
+   */
   final case class Request(unsorted: List[Int])
 }
 
+/**
+ * Client actor for sending messages to the filter actors
+ */
 class SorterClient extends Actor {
   import SorterClient.*
 
-  var requestQueue: List[(ActorRef, List[Int])] = List()
-  val sorter: ActorRef = context.actorOf(Props[Sorter](), "sorter")
-
-  var sorted: List[Int] = List()
+  var requestTable: Map[String, (ActorRef, List[Int], List[Int])] = Map()
 
   def receive: Receive = {
     case Request(unsorted) if unsorted == Nil =>
       sender() ! Nil
     case Request(unsorted) =>
-      requestQueue = requestQueue.appended(sender(), unsorted)
-      unsorted.appended(END).foreach(sorter ! Sorter.Sort(_))
-    case Sorter.Result(n) =>
-      sorted = sorted.appended(n)
+      val key = Instant.now().toString
+      val sorter = context.actorOf(Props[Sorter](), key)
+      requestTable += key -> (sender(), unsorted, Nil)
 
-      if (sorted.length == requestQueue.head._2.length) {
-        requestQueue.head._1 ! sorted
-        requestQueue = requestQueue.tail
-        sorted = List()
+      unsorted.appended(END).foreach(sorter ! Sorter.Sort(_))
+    case Sorter.Result(n: Int) =>
+      val key = sender().path.elements
+        .find(s => Try(Instant.parse(s)).isSuccess)
+        .map(Instant.parse)
+        .get.toString
+
+      var t = requestTable(key)
+      t = (t._1, t._2, t._3.appended(n))
+      if (t._3.length == t._2.length) {
+        t._1 ! t._3
+        requestTable -= key
+      } else {
+        requestTable += key -> t
       }
+    case _ => throw new IllegalArgumentException("Invalid type of message")
   }
 }
 
 /**
- * A filter actor for sorting
+ * Filter actor for sorting
  */
 object Sorter {
   final case class Sort(n: Int)
   final case class Result(n: Int)
 }
 
+/**
+ * A filter actor for sorting
+ */
 class Sorter extends Actor {
   import Sorter.*
 
@@ -83,7 +100,7 @@ class Sorter extends Actor {
     case Sort(n) if min.isEmpty =>
       min = Some(n)
     case Sort(n) =>
-      val child = if (context.children.nonEmpty) context.children.head else context.actorOf(Props[Sorter]())
+      val child = context.children.headOption.getOrElse(context.actorOf(Props[Sorter]()))
 
       if (n < min.get) {
         child ! Sort(min.get)
@@ -91,5 +108,6 @@ class Sorter extends Actor {
       } else {
         child ! Sort(n)
       }
+    case _ => throw new IllegalArgumentException("Invalid type of message")
   }
 }
