@@ -10,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 
 
 class problem1Test
-  extends TestKit(ActorSystem("problem1Test"))
+  extends TestKit(ActorSystem("main"))
     with ImplicitSender
     with AnyWordSpecLike
     with Matchers
@@ -20,7 +20,7 @@ class problem1Test
     TestKit.shutdownActorSystem(system)
   }
 
-  "Sorter" must {
+  "Sorter" should {
 
     "send back 1, 2, 3, 4 and 5 in order with 1, 5, 2, 4, 3 and 0" in {
       val sorter = system.actorOf(Props[Sorter]())
@@ -56,7 +56,7 @@ class problem1Test
     }
   }
 
-  "SorterClient" must {
+  "SorterClient" should {
 
     "send back [1, 2, 3, 4, 5] with [1, 5, 2, 4, 3]" in {
       val client = system.actorOf(Props[SorterClient]())

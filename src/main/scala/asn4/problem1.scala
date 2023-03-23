@@ -63,7 +63,7 @@ class SorterClient extends Actor {
         .find(s => Try(Instant.parse(s)).isSuccess)
         .map(Instant.parse)
         .get.toString
-      
+
       var t = requestTable(key)
       t = (t._1, t._2, t._3, t._4.appended(n))
       if (t._4.length == t._3.length) {
