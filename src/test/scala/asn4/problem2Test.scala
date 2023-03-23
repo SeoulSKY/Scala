@@ -116,7 +116,6 @@ class problem2Test
   }
 
   "Shuffler" should {
-
     "send back [1, 4, 2, 5, 3, 6] with [1, 2, 3, 4, 5, 6], n = 1 and isOutShuffle = true" in {
       val shuffler = system.actorOf(Props[Shuffler[Int]]())
 

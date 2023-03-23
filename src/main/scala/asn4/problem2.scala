@@ -17,7 +17,7 @@ object problem2 extends App {
   val system = ActorSystem("main")
   val shuffler = system.actorOf(Props[Shuffler[Int]](), "shuffler")
 
-  val deck = Range(1, 53).toList
+  val deck = Range(1, 7).toList
   shuffler.ask(Shuffler.Request(deck, 1, true))(3 seconds).onComplete {
     case Success(shuffled) => println(shuffled)
     case Failure(exception) => exception.printStackTrace()
@@ -94,7 +94,7 @@ class Splitter extends Actor {
 
   def receive: Receive = {
     case Request(deck, name) =>
-      val faroShuffler = context.actorSelection(s"../$name")
+      val faroShuffler = context.actorSelection(context.parent.path.child(name))
 
       faroShuffler ! FaroShuffler.SplitDeck(deck.take(deck.length / 2))
       faroShuffler ! FaroShuffler.SplitDeck(deck.takeRight(deck.length / 2))
