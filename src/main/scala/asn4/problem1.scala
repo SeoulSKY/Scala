@@ -50,7 +50,7 @@ class SorterClient extends Actor {
   var requestTable: Map[String, (ActorRef, ActorRef, List[Int], List[Int])] = Map()
 
   def receive: Receive = {
-    case Request(unsorted) if unsorted == Nil =>
+    case Request(Nil) =>
       sender() ! Nil
     case Request(unsorted) =>
       val key = Instant.now().toString
@@ -94,7 +94,7 @@ class Sorter extends Actor {
   var min: Option[Int] = None
 
   def receive: Receive = {
-    case Sort(n) if n == END =>
+    case Sort(END) =>
       sender() ! Result(min.get)
 
       if (context.children.nonEmpty) {
