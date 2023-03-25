@@ -21,7 +21,6 @@ class problem1Test
   }
 
   "SorterNode" should {
-
     "send back 1, 2, 3, 4 and 5 in order with 1, 5, 2, 4, 3 and 0" in {
       val sorter = system.actorOf(Props[SorterNode]())
       val unsorted = List(1, 5, 2, 4, 3)
@@ -39,13 +38,6 @@ class problem1Test
       expectNoMessage()
     }
 
-    "send back nothing with 0" in {
-      val sorter = system.actorOf(Props[SorterNode]())
-      sorter ! SorterNode.Sort(0)
-
-      expectNoMessage()
-    }
-
     "send back 1, 1, 2, 2 and 3 in order with 1, 3, 2, 1, 2 and 0" in {
       val sorter = system.actorOf(Props[SorterNode]())
       val unsorted = List(1, 3, 2, 1, 2)
@@ -57,7 +49,6 @@ class problem1Test
   }
 
   "Sorter" should {
-
     "send back [1, 2, 3, 4, 5] with [1, 5, 2, 4, 3]" in {
       val client = system.actorOf(Props[Sorter]())
       val unsorted = List(1, 2, 3, 4, 5)

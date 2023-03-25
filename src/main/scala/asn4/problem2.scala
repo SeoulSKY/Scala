@@ -52,7 +52,7 @@ class Shuffler[A] extends Actor {
       val splitter = context.actorOf(Props[Splitter]())
       val faroShuffler = context.actorOf(Props[FaroShuffler[A]](), key)
 
-      requestTable += key -> (sender(), n, isOutShuffle, splitter, faroShuffler)
+      requestTable += key -> (sender(), n - 1, isOutShuffle, splitter, faroShuffler)
 
       splitter ! Splitter.Request(deck, key)
       faroShuffler ! FaroShuffler.ShuffleMethod(isOutShuffle)
@@ -64,14 +64,14 @@ class Shuffler[A] extends Actor {
 
       val (client, n, isOutShuffle, splitter, faroShuffler) = requestTable(key)
 
-      if (n <= 1) {
+      context stop splitter
+      context stop faroShuffler
+      requestTable -= key
+
+      if (n <= 0) {
         client ! shuffled
-        context stop splitter
-        context stop faroShuffler
-        requestTable -= key
       } else {
-        requestTable += key -> (client, n - 1, isOutShuffle, splitter, faroShuffler)
-        self.tell(Request(shuffled, n - 1, isOutShuffle), client)
+        self.tell(Request(shuffled, n, isOutShuffle), client)
       }
   }
 }
